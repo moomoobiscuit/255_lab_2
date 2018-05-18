@@ -1,0 +1,270 @@
+---
+title: "ENGSCI 255 Lab 2"
+author: "Navindd Raj"
+date: "Due Date: 5pm Monday 28 May 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("ggplot2")
+library("rpart")
+library("rpart.plot")
+library("rattle")
+library("gridExtra")
+library("randomForest")
+theme_update(plot.title = element_text(hjust = 0.5))
+theme_update(plot.subtitle = element_text(hjust = 0.5))
+```
+
+##Question 1
+
+```{r}
+set.seed(99)  # sets a seed for random number generator
+```
+
+####a) k-means clustering using all independent attributes:
+
+```{r}
+spam.df = read.csv("spamdata.csv",header=TRUE) # read in the data
+
+# perform a k-means clustering with 20 iterations, using all 57 attributes
+spamCluster = kmeans(spam.df, 2, nstart = 20, iter.max = 20)
+spamCluster$size    # size of each cluster
+```
+
+Before we check the results of the clustering, we should find out how many emails are actually spam.
+```{r}
+numOfSpam = 0
+for (i in seq(1,length(spam.df$IsSpam))) {
+     if (spam.df$IsSpam[i] == 1) {
+         numOfSpam = numOfSpam + 1
+     }
+}
+print(numOfSpam)
+```
+
+We can see there are two clusters of size 4357 and 244, but there are 1813 spam emails in the dataset. So there will be a lot of false predictions in our clustered data. 
+
+####b) Generate a table for the clustering:
+
+Next, let's generate a table for the clustering results:
+```{r}
+# columns are is/is not spam, rows are the two clusters created
+table(spamCluster$cluster, spam.df$IsSpam, dnn = c("Cluster No", "Is/Is not Spam"))
+```
+
+It seems like cluster 1 is predicting the group that isn't spam, and cluster 2 is predicting the group that is spam. 
+
+####c) Calculations:
+
+We can make the attribute each cluster is predicting the name of the cluster, so it is easier to understand the calculations. We say that something being spam is the positive result (1 or yes). 
+```{r}
+for (i in seq(1,length(spamCluster$cluster))) {
+     # reduce the value by 1 so that each cluster represents what it is predicting
+     spamCluster$cluster[i] = spamCluster$cluster[i] - 1
+}
+
+table(spamCluster$cluster, spam.df$IsSpam, dnn = c("Prediction", "Actual"))
+```
+
+If we used this clustering as a foundation for a spam filter, what is the accuracy, sensitivity, specificity and precision of the filter? 
+
+Number of true negatives (TN) = 2735. Number of true positives (TP) = 191. Number of false positives (FP) = 53. Number of false negatives (FN) = 1622. 
+
+Accuracy = proportion of datapoints classified correctly = (TN+TP)/(total # of datapoints) = (2735+191)/(2735+191+53+1622) = 0.6359, or 63.59%
+
+Sensitivity = true positive rate = TP/(TP+FN) = 191/(191+1622) = 0.1054, or 10.54%. This is the proportion of datapoints which are predicted to be yes, and are actually yes. 
+
+Specificity = true negative rate = TN/(TN+FP) = 2735/(2735+53) = 0.9810, or 98.10%. This is the proportion of datapoints which are predicted to be no, and are actually no. 
+
+Precision = TP/(TP+FP) = 191/(191+53) = 0.7828, or 78.28%. This is the proportion of datapoints which are actually yes, when they are predicted to be yes. 
+
+##Question 2
+
+```{r}
+set.seed(50)  # sets a seed for random number generator
+```
+
+Generate a training dataset of 2400 datapoints, where the remaining points will be the test set:  
+```{r}
+# training subset of 2400 datapoints, half is random spam emails, half is random not spam emails
+# dataset is ordered so we know we are getting a 50/50 mix of 
+train = c(sample(1:numOfSpam,1200),sample(numOfSpam+1:length(spam.df$IsSpam),1200))
+
+# treat spam classification as a factor instead of numeric
+spam.df$IsSpam = as.factor(spam.df$IsSpam)
+```
+
+####a) Loss Matrices:
+
+#####**i.** 
+
+Set the termination criteria of max depth of 10. Disable any other termination criteria:
+```{r, fig.align='center'}
+# cp to 0 as we want to branch any time possible, minimum complexity parameter 
+controlParms = rpart.control(maxdepth = 10, cp = 0)
+```
+
+#####**ii.**
+
+We want to modify the loss matrix to generate 6 different trees using all independent attributes, ranging from no FP's to no FN's in the training data. This means we should put a heavy cost on the false positives and low cost on false negatives, and then constantly make FP's lower cost and FN's higher cost. The different elements in the matrix correspond to the costs of the following: 
+```{r}
+list(loss = matrix(c("TN","FN","FP","TP"), nrow = 2))
+```
+
+**Tree 1** (aiming for no false positives), cost of 95 for FP's, 5 for FN's:
+```{r}
+# 95/5 cost for FP/FN
+lossMatrix1 = list(loss = matrix(c(0,95,5,0), nrow = 2))
+
+# create the tree using the preset control and the loss matrix
+tree1 = rpart(IsSpam~., data = spam.df, subset = train, control = controlParms, parms = lossMatrix1)
+
+# in-sample prediction using the training data:
+ISCM1 = table(predict(tree1,spam.df[train,],type="class"),spam.df[train,"IsSpam"], dnn = c("Prediction", "Actual"))
+ISCM1
+```
+
+**Tree 2** (still a high weight on false positives), cost of 70 for FP's, 30 for FN's:
+```{r}
+# 70/30 cost for FP/FN
+lossMatrix2 = list(loss = matrix(c(0,70,30,0), nrow = 2))
+
+# create the tree using the preset control and the loss matrix
+tree2 = rpart(IsSpam~., data = spam.df, subset = train, control = controlParms, parms = lossMatrix2)
+
+# in-sample prediction using the training data:
+ISCM2 = table(predict(tree2,spam.df[train,],type="class"),spam.df[train,"IsSpam"], dnn = c("Prediction", "Actual"))
+ISCM2
+```
+
+**Tree 3** (slightly higher weight on false negatives vs false positives), cost of 45 for FP's, 65 for FN's:
+```{r}
+# 45/65 cost for FP/FN
+lossMatrix3 = list(loss = matrix(c(0,45,65,0), nrow = 2))
+
+# create the tree using the preset control and the loss matrix
+tree3 = rpart(IsSpam~., data = spam.df, subset = train, control = controlParms, parms = lossMatrix3)
+
+# in-sample prediction using the training data:
+ISCM3 = table(predict(tree3,spam.df[train,],type="class"),spam.df[train,"IsSpam"], dnn = c("Prediction", "Actual"))
+ISCM3
+```
+
+**Tree 4** (even higher weighting on false negatives), cost of 20 for FP's, 80 for FN's:
+```{r}
+# 20,80 cost for FP/FN
+lossMatrix4 = list(loss = matrix(c(0,20,80,0), nrow = 2))
+
+# create the tree using the preset control and the loss matrix
+tree4 = rpart(IsSpam~., data = spam.df, subset = train, control = controlParms, parms = lossMatrix4)
+
+# in-sample prediction using the training data:
+ISCM4 = table(predict(tree4,spam.df[train,],type="class"),spam.df[train,"IsSpam"], dnn = c("Prediction", "Actual"))
+ISCM4
+```
+
+**Tree 5** (aiming for no false negatives), cost of 5 for FP's, 95 for FN's:
+```{r}
+# 5/95 cost for FP/FN
+lossMatrix5 = list(loss = matrix(c(0,5,95,0), nrow = 2))
+
+# create the tree using the preset control and the loss matrix
+tree5 = rpart(IsSpam~., data = spam.df, subset = train, control = controlParms, parms = lossMatrix5)
+
+# in-sample prediction using the training data:
+ISCM5 = table(predict(tree5,spam.df[train,],type="class"),spam.df[train,"IsSpam"], dnn = c("Prediction", "Actual"))
+ISCM5
+```
+
+**Tree 6** (let's see what happens if we put an even higher weight now that we have achieved no false negatives already), cost of 1 for FP's, 99 for FN's:
+```{r}
+# 1/99 cost for FP/FN
+lossMatrix6 = list(loss = matrix(c(0,1,99,0), nrow = 2))
+
+# create the tree using the preset control and the loss matrix
+tree6 = rpart(IsSpam~., data = spam.df, subset = train, control = controlParms, parms = lossMatrix6)
+
+# in-sample prediction using the training data:
+ISCM6 = table(predict(tree6,spam.df[train,],type="class"),spam.df[train,"IsSpam"], dnn = c("Prediction", "Actual"))
+ISCM6
+```
+
+#####**iii.** 
+
+The in-sample confusion matrices have already been shown in part ii above, so I will just show the confusion matrices for the out of sample predictions, using the test set (original dataset minus the training set).
+
+**Tree 1:**
+```{r}
+# out of sample prediction using the test data:
+OOSCM1 = table(predict(tree1,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
+OOSCM1
+```
+
+**Tree 2:**
+```{r}
+# out of sample prediction using the test data:
+OOSCM2 = table(predict(tree2,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
+OOSCM2
+```
+
+**Tree 3:**
+```{r}
+# out of sample prediction using the test data:
+OOSCM3 = table(predict(tree3,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
+OOSCM3
+```
+
+**Tree 4:**
+```{r}
+# out of sample prediction using the test data:
+OOSCM4 = table(predict(tree4,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
+OOSCM4
+```
+
+**Tree 5:**
+```{r}
+# out of sample prediction using the test data:
+OOSCM5 = table(predict(tree5,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
+OOSCM5
+```
+
+**Tree 6:**
+```{r}
+# out of sample prediction using the test data:
+OOSCM6 = table(predict(tree6,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
+OOSCM6
+```
+
+#####**iv.** 
+
+Put the values of sensitivity and specificity for each classification model into a vector to then show on a scatterplot (including both in and out of sample performance). 
+
+```{r}
+inSampleSensitivity = c(ISCM1[4]/(ISCM1[4]+ISCM1[3]),ISCM2[4]/(ISCM2[4]+ISCM2[3]),ISCM3[4]/(ISCM3[4]+ISCM3[3]),ISCM4[4]/(ISCM4[4]+ISCM4[3]),ISCM5[4]/(ISCM5[4]+ISCM5[3]),ISCM6[4]/(ISCM6[4]+ISCM6[3]))
+
+inSampleSpecificity = c(ISCM1[1]/(ISCM1[1]+ISCM1[2]),ISCM2[1]/(ISCM2[1]+ISCM2[2]),ISCM3[1]/(ISCM3[1]+ISCM3[2]),ISCM4[1]/(ISCM4[1]+ISCM4[2]),ISCM5[1]/(ISCM5[1]+ISCM5[2]),ISCM6[1]/(ISCM6[1]+ISCM6[2]))
+
+outOfSampleSensitivity = c(OOSCM1[4]/(OOSCM1[4]+OOSCM1[3]),OOSCM2[4]/(OOSCM2[4]+OOSCM2[3]),OOSCM3[4]/(OOSCM3[4]+OOSCM3[3]),OOSCM4[4]/(OOSCM4[4]+OOSCM4[3]),OOSCM5[4]/(OOSCM5[4]+OOSCM5[3]),OOSCM6[4]/(OOSCM6[4]+OOSCM6[3]))
+
+outOfSampleSpecificity = c(OOSCM1[1]/(OOSCM1[1]+OOSCM1[2]),OOSCM2[1]/(OOSCM2[1]+OOSCM2[2]),OOSCM3[1]/(OOSCM3[1]+OOSCM3[2]),OOSCM4[1]/(OOSCM4[1]+OOSCM4[2]),OOSCM5[1]/(OOSCM5[1]+OOSCM5[2]),OOSCM6[1]/(OOSCM6[1]+OOSCM6[2]))
+
+performance1.df = data.frame(inSampleSensitivity, inSampleSpecificity)
+performance2.df = data.frame(outOfSampleSensitivity, outOfSampleSpecificity)
+```
+
+Show this information on a 2D scatterplot of sensitivity vs specificity:
+
+#CHANGE THIS SHIT LATER
+```{r, fig.align = 'center'}
+
+p = ggplot(performance1.df, aes(x = inSampleSensitivity, y = inSampleSpecificity))
+p + ggtitle("Specificity vs Sensitivity for a set of classification trees with varying loss matrices") + geom_point(colour = "blue", shape = 17, size = 3) + labs(x = 'Sensitivity', y='Specificity') + geom_point(data = performance2.df, aes(x = outOfSampleSensitivity, y = outOfSampleSpecificity), colour = "orange", shape = 4, size = 3)
+```
+
+
+
+
+
+
