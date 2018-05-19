@@ -86,7 +86,7 @@ Precision = TP/(TP+FP) = 191/(191+53) = 0.7828, or 78.28%. This is the proportio
 set.seed(50)  # sets a seed for random number generator
 ```
 
-Generate a training dataset of 2400 datapoints, where the remaining points will be the test set:  
+Generate a training dataset of 2400 datapoints, where the remaining points will be the test set: 
 ```{r}
 # training subset of 2400 datapoints, half is random spam emails, half is random not spam emails
 # dataset is ordered so we know we are getting a 50/50 mix of 
@@ -102,8 +102,8 @@ spam.df$IsSpam = as.factor(spam.df$IsSpam)
 
 Set the termination criteria of max depth of 10. Disable any other termination criteria:
 ```{r, fig.align='center'}
-# cp to 0 as we want to branch any time possible, minimum complexity parameter 
-controlParms = rpart.control(maxdepth = 10, cp = 0)
+# cp to 0 as we want to branch any time possible, minimum complexity parameter, minsplit 1
+controlParms = rpart.control(maxdepth = 10, cp = 0, minsplit = 1)
 ```
 
 #####**ii.**
@@ -193,55 +193,55 @@ ISCM6
 
 #####**iii.** 
 
-The in-sample confusion matrices have already been shown in part ii above, so I will just show the confusion matrices for the out of sample predictions, using the test set (original dataset minus the training set).
+The in-sample confusion matrices have already been shown in part ii above, so I will just show the confusion matrices for the out-of-sample predictions, using the test set (original dataset minus the training set).
 
 **Tree 1:**
 ```{r}
-# out of sample prediction using the test data:
+# out-of-sample prediction using the test data:
 OOSCM1 = table(predict(tree1,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
 OOSCM1
 ```
 
 **Tree 2:**
 ```{r}
-# out of sample prediction using the test data:
+# out-of-sample prediction using the test data:
 OOSCM2 = table(predict(tree2,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
 OOSCM2
 ```
 
 **Tree 3:**
 ```{r}
-# out of sample prediction using the test data:
+# out-of-sample prediction using the test data:
 OOSCM3 = table(predict(tree3,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
 OOSCM3
 ```
 
 **Tree 4:**
 ```{r}
-# out of sample prediction using the test data:
+# out-of-sample prediction using the test data:
 OOSCM4 = table(predict(tree4,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
 OOSCM4
 ```
 
 **Tree 5:**
 ```{r}
-# out of sample prediction using the test data:
+# out-of-sample prediction using the test data:
 OOSCM5 = table(predict(tree5,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
 OOSCM5
 ```
 
 **Tree 6:**
 ```{r}
-# out of sample prediction using the test data:
+# out-of-sample prediction using the test data:
 OOSCM6 = table(predict(tree6,spam.df[-train,],type="class"),spam.df[-train,"IsSpam"], dnn = c("Prediction", "Actual"))
 OOSCM6
 ```
 
 #####**iv.** 
 
-Put the values of sensitivity and specificity for each classification model into a vector to then show on a scatterplot (including both in and out of sample performance). 
+Put the values of sensitivity and specificity for each classification model into a vector to then show on a scatterplot (including both in and out-of-sample performance): [Code for sensitivity/specificity calculations hidden because messy]
 
-```{r}
+```{r, echo = FALSE}
 inSampleSensitivity = c(ISCM1[4]/(ISCM1[4]+ISCM1[3]),ISCM2[4]/(ISCM2[4]+ISCM2[3]),ISCM3[4]/(ISCM3[4]+ISCM3[3]),ISCM4[4]/(ISCM4[4]+ISCM4[3]),ISCM5[4]/(ISCM5[4]+ISCM5[3]),ISCM6[4]/(ISCM6[4]+ISCM6[3]))
 
 inSampleSpecificity = c(ISCM1[1]/(ISCM1[1]+ISCM1[2]),ISCM2[1]/(ISCM2[1]+ISCM2[2]),ISCM3[1]/(ISCM3[1]+ISCM3[2]),ISCM4[1]/(ISCM4[1]+ISCM4[2]),ISCM5[1]/(ISCM5[1]+ISCM5[2]),ISCM6[1]/(ISCM6[1]+ISCM6[2]))
@@ -254,14 +254,87 @@ performance1.df = data.frame(inSampleSensitivity, inSampleSpecificity)
 performance2.df = data.frame(outOfSampleSensitivity, outOfSampleSpecificity)
 ```
 
-Show this information on a 2D scatterplot of sensitivity vs specificity:
-
-#CHANGE THIS SHIT LATER
-```{r, fig.align = 'center'}
-
-p = ggplot(performance1.df, aes(x = inSampleSensitivity, y = inSampleSpecificity))
-p + ggtitle("Specificity vs Sensitivity for a set of classification trees with varying loss matrices") + geom_point(colour = "blue", shape = 17, size = 3) + labs(x = 'Sensitivity', y='Specificity') + geom_point(data = performance2.df, aes(x = outOfSampleSensitivity, y = outOfSampleSpecificity), colour = "orange", shape = 4, size = 3)
+Show this information on a 2D scatterplot of sensitivity vs specificity, again, the in-sample performance was using the training dataset and out-of-sample performance used the original dataset minus the training set. Note the axes don't start from 0: 
+```{r, fig.align = 'center',fig.height=5}
+plot(inSampleSpecificity ~ inSampleSensitivity, data = performance1.df, col = "orange", pch = 16, cex = 1.2, ylim = c(0.6,1), xlim = c(0.7,1), ann = FALSE)
+points(outOfSampleSpecificity ~ outOfSampleSensitivity, data = performance2.df, col = "blue", pch = 4, cex = 1.4)
+legend("bottomleft", legend = c("In-sample performance", "Out-of-sample performance"), pch = c(16,4), col = c("orange","blue"))
+title(main = "Specificity vs Sensitivity for a set of classification trees\nwith varying loss matrices", xlab = "Sensitivity", ylab = "Specificity")
 ```
+
+####b) Tree Depth:
+
+#####**i.** 
+
+We want to generate six classification trees that vary by their max depth (from 5 to 30). For this I have disabled any other stopping criteria as otherwise the higher depth trees will all look the same and not go until their max depth has been reached.
+
+To save space, I used a list to store all 6 trees generated, indexed 1 through 6 corresponding to max depth of 5 through 30 in steps of 5 for each tree:
+```{r}
+# create a list to store the trees
+trees = list()
+
+for (i in seq(1,6)) {
+  # max depth of 5 to 30, disable other stopping criteria
+  controlParms = rpart.control(maxdepth = 5*i, cp = 0, minsplit = 1) 
+  
+  # create a tree for each max depth
+  trees[[i]] = rpart(IsSpam~.,data = spam.df, subset = train, control = controlParms)
+}
+```
+
+#####**ii.**
+
+Plot the tree for a depth of 5:
+```{r, fig.align = 'center', fig.height = 5}
+fancyRpartPlot(trees[[1]], sub = "Tree using all independent vars, max depth 5")
+```
+
+#####**iii.**
+
+We now want to plot the *accuracies* of the classification models vs the max depths, one line for in-sample performance and one line for out-of-sample performance.
+
+First of all, let's get some vectors of the accuracies for each tree depth and their predictions for both in and out-of-sample data:
+```{r}
+# create vectors to hold accuracies
+ISAcc = c()
+OOSAcc = c()
+
+# generate confusion matrices, then put accuracies in lists for their respective predictions
+for (i in seq(1,6)) {
+  ISCM = table(predict(trees[[i]],spam.df[train,],type="class"),spam.df[train,"IsSpam"])
+  OOSCM = table(predict(trees[[i]],spam.df[-train,],type="class"),spam.df[-train,"IsSpam"])
+  
+  # I couldn't simply use length(train) and length(spam.df$IsSpam - train) because the number of
+  # predictions generated did not match the number of datapoints in the training set/ test set...
+  # idk why, but the number of datapoints in the train+test results does sum to total # of datapoints
+  ISAcc[i] = (ISCM[1]+ISCM[4])/(ISCM[1]+ISCM[2]+ISCM[3]+ISCM[4])
+  OOSAcc[i] = (OOSCM[1]+OOSCM[4])/(OOSCM[1]+OOSCM[2]+OOSCM[3]+OOSCM[4])
+}
+```
+
+Now let's try plot the accuracies against the max depths for each tree:
+```{r, fig.align = 'center'}
+# create a vector holding the max depths
+maxDepths = seq(5,30,5)
+
+# plot the data and add information about it
+plot(ISAcc ~ maxDepths, type = "n", ylim = c(0.85,1), ann = FALSE)
+lines(ISAcc ~ maxDepths, col = "orange")
+lines(OOSAcc ~ maxDepths, col = "blue")
+legend("bottomleft", legend = c("In-sample performance", "Out-of-sample performance"), pch = "_", col = c("orange","blue"))
+title(main = "Accuracies for a set of trees with varying max depths\n(with other stopping criteria disabled)", xlab = "Max Depth", ylab = "Accuracy")
+```
+
+####c) Discuss the results above:
+
+From the scatterplot (where max depth was constant and we changed the loss matrices for each tree), we can infer that in general, as you try to increase the sensitivity of a classification tree, the specificity will drop as a result, and vice versa for increasing specificity. For all trees, we have a decent ratio of specificity to sensitivity, meaning we have hit reasonably optimal solutions, assuming we are weighting specificity and sensitivity the same in a bi-objective optimasation problem. 
+
+From the line graph (where the loss matrices were kept constant and we changed the max depth for each tree), we can see that there are two different trends. The in-sample performance kept improving as we increased the max depth of the tree, but the out-of-sample performance started dropping after the max depth of the tree was higher than 10. This is probably due to overfitting the classification model to the training data, so when applied to unseen data, it performs poorly as it has been conditioned too far with the training data. So we can see that the peak optimality (if we are aiming for accuracy) in this case is at a max tree depth of 10, which is what we were using for when we were varying the loss matrices in the first part of the question. 
+
+In both experiments, we can see that the out-of-sample performance was poorer than the in-sample performance, which is expected. We should also consider the fact that we may have overfit the trees for both experiments, and to see if there is a more optimal max depth to use, we should test further by checking varying max depths between 5 and 15 in smaller increments, and possible change the stopping criteria so that it does have a minimum split of higher than 1 and requires some threshold change in complexity before branching out. 
+
+
+
 
 
 
