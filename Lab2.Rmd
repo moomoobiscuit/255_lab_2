@@ -7,14 +7,12 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library("ggplot2")
+# if fucked put back ggplot2 and the theme update shit and gridExtra
 library("rpart")
 library("rpart.plot")
 library("rattle")
-library("gridExtra")
 library("randomForest")
-theme_update(plot.title = element_text(hjust = 0.5))
-theme_update(plot.subtitle = element_text(hjust = 0.5))
+library("knitr")
 ```
 
 ##Question 1
@@ -409,7 +407,7 @@ A higher mean decrease in gini index means the variable has a higher importance,
 
 The top 5 attributes are: "A52", "A53", "A7", "A16" and "A55", in descending order of importance.
 
-####d) Plot the top 5 attributes and comment on results:
+####d) Scatterplot matrix of the top five attributes and comments:
 
 Let's make a scatterplot matrix using the top 5 attributes for distinguishing whether or not an email is spam or not:
 ```{r, fig.align = "right", fig.height = 8.5, fig.width = 12}
@@ -419,6 +417,59 @@ pairs(spam.df[,c("A52", "A53", "A7", "A16", "A55")], col = ifelse(spam.df$IsSpam
 legend(0.91, 0.76, legend = c("Is spam", "Is not spam"), col = c("firebrick1", "deepskyblue2"), pch = 1, xpd = TRUE)
 
 ```
+
+We can see most blue (not spam) datapoints are clustered on the left or bottom edge or both on each plot. This means that for every attribute shown in the pairs plot, there is a (seemingly) strong trend that if it's attributes (A52, A53, A7, A16 and A55) are near zero, it is likely to not be spam. We can see a much higher concentration of red datapoints as we go away from the bottom left corner in *any direction*, meaning that if any attribute increases, the email is more likely to be spam. As any attribute takes higher and higher positive values, the emails associated with those attributes are much more likely to be spam. This statement is less evident in the "A52" attribute, where even as A52 increases, emails are unlikely to be spam if the other attributes are near zero. Keep in mind that all the claims I made for the dataset here are only applicable to the five attributes mentioned before, and further testing will need to be done if we want to make more general claims about the entire dataset. However it still is ok for prediction purposes since these five attributes are the most important for distinguishing if an email is spam or not. This result is interesting because it may allow us to cut the time spent analysing the data for all attributes and make confident decisions using only a few attributes.
+
+##Question 4
+
+####a) Formulate a binary integer program in Excel to determine what attributes to collect and use:
+
+We want the most optimal selection of attributes to collect and use in the spam filtering proces, maximising mean decrease in gini index while also considering the time taken (we don't want to exceed 50ms for a single email)
+
+After getting all the importance data from the "importance(spamForest3)" command, I input them into an Excel linear program. I divided importance score for each attribute by the time taken to scan that particular attribute to give the coefficients for the maximise objective function, and set contraints that total time could not exceed 50ms and the decision variables are all binary. A snippet containing all the important formula used is shown below:
+```{r, fig.align = 'center', echo = FALSE}
+knitr::include_graphics('C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/binaryLP.PNG')
+knitr::include_graphics('C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/solverParameters.PNG')
+```
+
+And the results:
+```{r, fig.align = 'center', echo = FALSE}
+knitr::include_graphics('C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/binaryLP2.PNG')
+```
+
+From the results of solving the linear program, we want to scan the attributes: A3, A7, A11, A15, A16, A17, A21, A25, A28, A37, A44, A50, A55. Interestingly, we ditch some of the very high importance variables like A52 and A53 in favour of lower importance ones, as the scan time for those variable is too high to allow for it. 
+
+####b) Generate random forest using optimal attributes:
+
+```{r}
+# generate random forest using only the attributes that satisfy the 50ms requirement from above
+# column 58 for "IsSpam" data
+spamForestOptimised = randomForest(IsSpam~., data = spam.df[,c(3,7,11,15,16,17,21,25,28,37,44,50,55,58)], ntree = 1000)
+```
+
+####c) Compute the confusion matrix and related calculations:
+
+```{r}
+# generate confusion matrix for new random forest
+table(predict(spamForestOptimised, spam.df, type = "response"), spam.df$IsSpam, dnn = c("Prediction", "Actual"))
+```
+
+$$\text{Accuracy} =\frac{TN+TP}{\text{total # of datapoints}} = \frac{2750+1692}{2750+121+38+1692} = 0.9654$$
+
+$$\text{Sensitivity} = \frac{TP}{TP+FN} = \frac{1692}{1692+121} = 0.9333$$
+
+$$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2750}{2750+38} = 0.9864$$
+
+$$\text{Precision} = \frac{TP}{TP+FP} = \frac{1692}{1692+38} = 0.9780$$
+
+####d) Compare the results to that from Question 3:
+
+Sum the scan times in the other csv, compare how much faster, state what accuracy and stuff we lose, is it worth it, other stuff?
+
+
+
+
+
 
 
 
