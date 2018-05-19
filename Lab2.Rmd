@@ -21,13 +21,12 @@ theme_update(plot.subtitle = element_text(hjust = 0.5))
 
 ```{r}
 set.seed(99)  # sets a seed for random number generator
+spam.df = read.csv("spamdata.csv",header=TRUE) # read in the data
 ```
 
 ####a) k-means clustering using all independent attributes:
 
 ```{r}
-spam.df = read.csv("spamdata.csv",header=TRUE) # read in the data
-
 # perform a k-means clustering with 20 iterations, using all 57 attributes
 spamCluster = kmeans(spam.df, 2, nstart = 20, iter.max = 20)
 spamCluster$size    # size of each cluster
@@ -72,13 +71,16 @@ If we used this clustering as a foundation for a spam filter, what is the accura
 
 Number of true negatives (TN) = 2735. Number of true positives (TP) = 191. Number of false positives (FP) = 53. Number of false negatives (FN) = 1622. 
 
-Accuracy = proportion of datapoints classified correctly = (TN+TP)/(total # of datapoints) = (2735+191)/(2735+191+53+1622) = 0.6359, or 63.59%
+$\text{Accuracy = proportion of datapoints classified correctly} =\frac{TN+TP}{\text{total # of datapoints}} = \frac{2735+191}{2735+191+53+1622} = 0.6359$
 
-Sensitivity = true positive rate = TP/(TP+FN) = 191/(191+1622) = 0.1054, or 10.54%. This is the proportion of datapoints which are predicted to be yes, and are actually yes. 
+$\text{Sensitivity = true positive rate} = \frac{TP}{TP+FN} = \frac{191}{191+1622} = 0.1054$
+. This is the proportion of datapoints which are predicted to be yes, and are actually yes.
 
-Specificity = true negative rate = TN/(TN+FP) = 2735/(2735+53) = 0.9810, or 98.10%. This is the proportion of datapoints which are predicted to be no, and are actually no. 
+$\text{Specificity = true negative rate} = \frac{TN}{TN+FP} = \frac{2735}{2735+53} = 0.9810$
+. This is the proportion of datapoints which are predicted to be no, and are actually no.
 
-Precision = TP/(TP+FP) = 191/(191+53) = 0.7828, or 78.28%. This is the proportion of datapoints which are actually yes, when they are predicted to be yes. 
+$\text{Precision} = \frac{TP}{TP+FP} = \frac{191}{191+53} = 0.7828$
+. This is the proportion of datapoints which are actually yes, when they are predicted to be yes.
 
 ##Question 2
 
@@ -312,7 +314,7 @@ for (i in seq(1,6)) {
 }
 ```
 
-Now let's try plot the accuracies against the max depths for each tree:
+Now let's try plot the accuracies against the max depths for each tree. Note again the axes don't start from 0:
 ```{r, fig.align = 'center'}
 # create a vector holding the max depths
 maxDepths = seq(5,30,5)
@@ -331,11 +333,92 @@ From the scatterplot (where max depth was constant and we changed the loss matri
 
 From the line graph (where the loss matrices were kept constant and we changed the max depth for each tree), we can see that there are two different trends. The in-sample performance kept improving as we increased the max depth of the tree, but the out-of-sample performance started dropping after the max depth of the tree was higher than 10. This is probably due to overfitting the classification model to the training data, so when applied to unseen data, it performs poorly as it has been conditioned too far with the training data. So we can see that the peak optimality (if we are aiming for accuracy) in this case is at a max tree depth of 10, which is what we were using for when we were varying the loss matrices in the first part of the question. 
 
-In both experiments, we can see that the out-of-sample performance was poorer than the in-sample performance, which is expected. We should also consider the fact that we may have overfit the trees for both experiments, and to see if there is a more optimal max depth to use, we should test further by checking varying max depths between 5 and 15 in smaller increments, and possible change the stopping criteria so that it does have a minimum split of higher than 1 and requires some threshold change in complexity before branching out. 
+In both experiments, we can see that the out-of-sample performance was poorer than the in-sample performance, which is expected. We should also consider the fact that we may have overfit the trees for both experiments, and to see if there is a more optimal max depth to use, we should test further by checking varying max depths between 5 and 15 in smaller increments, and possibly change the stopping criteria so that it does have a minimum split of higher than 1 and requires some threshold change in complexity before branching out. 
 
+##Question 3
 
+```{r}
+set.seed(42)  # sets a seed for random number generator
+```
 
+####a) Generate different random forests with 10, 100 and 100 trees:
 
+```{r}
+# with 10 trees
+spamForest1 = randomForest(IsSpam~., data = spam.df, ntree = 10)
+
+# with 100 trees
+spamForest2 = randomForest(IsSpam~., data = spam.df, ntree = 100)
+
+# with 1000 trees
+spamForest3 = randomForest(IsSpam~., data = spam.df, ntree = 1000)
+```
+
+####b) Confusion matrices and calculations: 
+
+For forest with 10 trees:
+```{r}
+# generate confusion matrix
+table(predict(spamForest1, spam.df, type = "response"), spam.df$IsSpam, dnn = c("Prediction", "Actual"))
+```
+$$\text{Accuracy} =\frac{TN+TP}{\text{total # of datapoints}} = \frac{2782+1782}{2782+31+6+1782} = 0.9920$$
+
+$$\text{Sensitivity} = \frac{TP}{TP+FN} = \frac{1782}{1782+31} = 0.9829$$
+
+$$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2782}{2782+6} = 0.9978$$
+
+$$\text{Precision} = \frac{TP}{TP+FP} = \frac{1782}{1782+6} = 0.9966$$
+
+For forest with 100 trees:
+```{r}
+# generate confusion matrix
+table(predict(spamForest2, spam.df, type = "response"), spam.df$IsSpam, dnn = c("Prediction", "Actual"))
+```
+
+$$\text{Accuracy} =\frac{TN+TP}{\text{total # of datapoints}} = \frac{2788+1794}{2788+19+0+1794} = 0.9959$$
+
+$$\text{Sensitivity} = \frac{TP}{TP+FN} = \frac{1794}{1794+19} = 0.9895$$
+
+$$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2788}{2788+0} = 1.000$$
+
+$$\text{Precision} = \frac{TP}{TP+FP} = \frac{1794}{1794+0} = 1.000$$
+
+For forest with 1000 trees:
+```{r}
+# generate confusion matrix
+table(predict(spamForest3, spam.df, type = "response"), spam.df$IsSpam, dnn = c("Prediction", "Actual"))
+```
+
+$$\text{Accuracy} =\frac{TN+TP}{\text{total # of datapoints}} = \frac{2788+1793}{2788+20+0+1793} = 0.9957$$
+
+$$\text{Sensitivity} = \frac{TP}{TP+FN} = \frac{1793}{1793+20} = 0.9890$$
+
+$$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2788}{2788+0} = 1.000$$
+
+$$\text{Precision} = \frac{TP}{TP+FP} = \frac{1793}{1793+0} = 1.000$$
+
+####c) Plot importance different attributes:
+
+```{r, fig.align = 'center', fig.height = 6.5}
+# using forest with 1000 trees
+varImpPlot(spamForest3, main = "Importance of each variable for classifying spam emails")
+
+```
+
+A higher mean decrease in gini index means the variable has a higher importance, so variables with points further to the right of the plot are of higher importance for distinguishing spam emails. 
+
+The top 5 attributes are: "A52", "A53", "A7", "A16" and "A55", in descending order of importance.
+
+####d) Plot the top 5 attributes and comment on results:
+
+Let's make a scatterplot matrix using the top 5 attributes for distinguishing whether or not an email is spam or not:
+```{r, fig.align = "right", fig.height = 8.5, fig.width = 12}
+pairs(spam.df[,c("A52", "A53", "A7", "A16", "A55")], col = ifelse(spam.df$IsSpam == "1", "firebrick1", "deepskyblue2"), oma=c(3,2,2,12))
+
+# plot legend outside of the figure region
+legend(0.91, 0.76, legend = c("Is spam", "Is not spam"), col = c("firebrick1", "deepskyblue2"), pch = 1, xpd = TRUE)
+
+```
 
 
 
