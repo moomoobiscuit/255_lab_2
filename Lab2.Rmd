@@ -428,13 +428,13 @@ We want the most optimal selection of attributes to collect and use in the spam 
 
 After getting all the importance data from the "importance(spamForest3)" command, I input them into an Excel linear program. I divided importance score for each attribute by the time taken to scan that particular attribute to give the coefficients for the maximise objective function, and set contraints that total time could not exceed 50ms and the decision variables are all binary. A snippet containing all the important formula used is shown below:
 ```{r, fig.align = 'center', echo = FALSE}
-knitr::include_graphics('C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/binaryLP.PNG')
-knitr::include_graphics('C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/solverParameters.PNG')
+knitr::include_graphics('Lab2_files/binaryLP.PNG')
+knitr::include_graphics('Lab2_files/solverParameters.PNG')
 ```
 
 And the results:
 ```{r, fig.align = 'center', echo = FALSE}
-knitr::include_graphics('C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/binaryLP2.PNG')
+knitr::include_graphics('Lab2_files/binaryLP2.PNG')
 ```
 
 From the results of solving the linear program, we only want to scan these attributes: A3, A7, A11, A15, A16, A17, A21, A25, A28, A37, A44, A50, A55. Interestingly, we ditch some of the very high importance variables like A52 and A53 in favour of lower importance ones, as the scan time for those variables is too high to justify it being used.

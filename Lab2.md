@@ -639,10 +639,10 @@ attribute to give the coefficients for the maximise objective function,
 and set contraints that total time could not exceed 50ms and the
 decision variables are all binary. A snippet containing all the
 important formula used is shown below:
-<img src="C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/binaryLP.PNG" style="display: block; margin: auto;" /><img src="C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/solverParameters.PNG" style="display: block; margin: auto;" />
+<img src="Lab2_files/binaryLP.PNG" style="display: block; margin: auto;" /><img src="Lab2_files/solverParameters.PNG" style="display: block; margin: auto;" />
 
 And the results:
-<img src="C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/binaryLP2.PNG" style="display: block; margin: auto;" />
+<img src="Lab2_files/binaryLP2.PNG" style="display: block; margin: auto;" />
 
 From the results of solving the linear program, we only want to scan
 these attributes: A3, A7, A11, A15, A16, A17, A21, A25, A28, A37, A44,
