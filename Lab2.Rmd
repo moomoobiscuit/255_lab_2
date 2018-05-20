@@ -2,7 +2,7 @@
 title: "ENGSCI 255 Lab 2"
 author: "Navindd Raj"
 date: "Due Date: 5pm Monday 28 May 2018"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -15,14 +15,14 @@ library("randomForest")
 library("knitr")
 ```
 
-##Question 1
+## Question 1
 
 ```{r}
 set.seed(99)  # sets a seed for random number generator
-spam.df = read.csv("spamdata.csv",header=TRUE) # read in the data
+spam.df = read.csv("spamdata.csv",header=TRUE) # read in the spam data
 ```
 
-####a) k-means clustering using all independent attributes:
+#### a) k-means clustering using all independent attributes:
 
 ```{r}
 # perform a k-means clustering with 20 iterations, using all 57 attributes
@@ -43,7 +43,7 @@ print(numOfSpam)
 
 We can see there are two clusters of size 4357 and 244, but there are 1813 spam emails in the dataset. So there will be a lot of false predictions in our clustered data. 
 
-####b) Generate a table for the clustering:
+#### b) Generate a table for the clustering:
 
 Next, let's generate a table for the clustering results:
 ```{r}
@@ -53,7 +53,7 @@ table(spamCluster$cluster, spam.df$IsSpam, dnn = c("Cluster No", "Is/Is not Spam
 
 It seems like cluster 1 is predicting the group that isn't spam, and cluster 2 is predicting the group that is spam. 
 
-####c) Calculations:
+#### c) Calculations:
 
 We can make the attribute each cluster is predicting the name of the cluster, so it is easier to understand the calculations. We say that something being spam is the positive result (1 or yes). 
 ```{r}
@@ -80,7 +80,7 @@ $\text{Specificity = true negative rate} = \frac{TN}{TN+FP} = \frac{2735}{2735+5
 $\text{Precision} = \frac{TP}{TP+FP} = \frac{191}{191+53} = 0.7828$
 . This is the proportion of datapoints which are actually yes, when they are predicted to be yes.
 
-##Question 2
+## Question 2
 
 ```{r}
 set.seed(50)  # sets a seed for random number generator
@@ -96,9 +96,9 @@ train = c(sample(1:numOfSpam,1200),sample(numOfSpam+1:length(spam.df$IsSpam),120
 spam.df$IsSpam = as.factor(spam.df$IsSpam)
 ```
 
-####a) Loss Matrices:
+#### a) Loss Matrices:
 
-#####**i.** 
+##### **i.** 
 
 Set the termination criteria of max depth of 10. Disable any other termination criteria:
 ```{r, fig.align='center'}
@@ -106,7 +106,7 @@ Set the termination criteria of max depth of 10. Disable any other termination c
 controlParms = rpart.control(maxdepth = 10, cp = 0, minsplit = 1)
 ```
 
-#####**ii.**
+##### **ii.**
 
 We want to modify the loss matrix to generate 6 different trees using all independent attributes, ranging from no FP's to no FN's in the training data. This means we should put a heavy cost on the false positives and low cost on false negatives, and then constantly make FP's lower cost and FN's higher cost. The different elements in the matrix correspond to the costs of the following: 
 ```{r}
@@ -191,7 +191,7 @@ ISCM6 = table(predict(tree6,spam.df[train,],type="class"),spam.df[train,"IsSpam"
 ISCM6
 ```
 
-#####**iii.** 
+##### **iii.** 
 
 The in-sample confusion matrices have already been shown in part ii above, so I will just show the confusion matrices for the out-of-sample predictions, using the test set (original dataset minus the training set).
 
@@ -237,7 +237,7 @@ OOSCM6 = table(predict(tree6,spam.df[-train,],type="class"),spam.df[-train,"IsSp
 OOSCM6
 ```
 
-#####**iv.** 
+##### **iv.** 
 
 Put the values of sensitivity and specificity for each classification model into a vector to then show on a scatterplot (including both in and out-of-sample performance): [Code for sensitivity/specificity calculations hidden because messy]
 
@@ -262,9 +262,9 @@ legend("bottomleft", legend = c("In-sample performance", "Out-of-sample performa
 title(main = "Specificity vs Sensitivity for a set of classification trees\nwith varying loss matrices", xlab = "Sensitivity", ylab = "Specificity")
 ```
 
-####b) Tree Depth:
+#### b) Tree Depth:
 
-#####**i.** 
+##### **i.** 
 
 We want to generate six classification trees that vary by their max depth (from 5 to 30). For this I have disabled any other stopping criteria as otherwise the higher depth trees will all look the same and not go until their max depth has been reached.
 
@@ -282,14 +282,14 @@ for (i in seq(1,6)) {
 }
 ```
 
-#####**ii.**
+##### **ii.**
 
 Plot the tree for a depth of 5:
 ```{r, fig.align = 'center', fig.height = 5}
 fancyRpartPlot(trees[[1]], sub = "Tree using all independent vars, max depth 5")
 ```
 
-#####**iii.**
+##### **iii.**
 
 We now want to plot the *accuracies* of the classification models vs the max depths, one line for in-sample performance and one line for out-of-sample performance.
 
@@ -325,7 +325,7 @@ legend("bottomleft", legend = c("In-sample performance", "Out-of-sample performa
 title(main = "Accuracies for a set of trees with varying max depths\n(with other stopping criteria disabled)", xlab = "Max Depth", ylab = "Accuracy")
 ```
 
-####c) Discuss the results above:
+#### c) Discuss the results above:
 
 From the scatterplot (where max depth was constant and we changed the loss matrices for each tree), we can infer that in general, as you try to increase the sensitivity of a classification tree, the specificity will drop as a result, and vice versa for increasing specificity. For all trees, we have a decent ratio of specificity to sensitivity, meaning we have hit reasonably optimal solutions, assuming we are weighting specificity and sensitivity the same in a bi-objective optimasation problem. 
 
@@ -333,13 +333,13 @@ From the line graph (where the loss matrices were kept constant and we changed t
 
 In both experiments, we can see that the out-of-sample performance was poorer than the in-sample performance, which is expected. We should also consider the fact that we may have overfit the trees for both experiments, and to see if there is a more optimal max depth to use, we should test further by checking varying max depths between 5 and 15 in smaller increments, and possibly change the stopping criteria so that it does have a minimum split of higher than 1 and requires some threshold change in complexity before branching out. 
 
-##Question 3
+## Question 3
 
 ```{r}
 set.seed(42)  # sets a seed for random number generator
 ```
 
-####a) Generate different random forests with 10, 100 and 100 trees:
+#### a) Generate different random forests with 10, 100 and 100 trees:
 
 ```{r}
 # with 10 trees
@@ -352,9 +352,9 @@ spamForest2 = randomForest(IsSpam~., data = spam.df, ntree = 100)
 spamForest3 = randomForest(IsSpam~., data = spam.df, ntree = 1000)
 ```
 
-####b) Confusion matrices and calculations: 
+#### b) Confusion matrices and calculations: 
 
-For forest with 10 trees:
+For forest with **10 trees**:
 ```{r}
 # generate confusion matrix
 table(predict(spamForest1, spam.df, type = "response"), spam.df$IsSpam, dnn = c("Prediction", "Actual"))
@@ -367,7 +367,7 @@ $$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2782}{2782+6} = 0.9978$$
 
 $$\text{Precision} = \frac{TP}{TP+FP} = \frac{1782}{1782+6} = 0.9966$$
 
-For forest with 100 trees:
+For forest with **100 trees**:
 ```{r}
 # generate confusion matrix
 table(predict(spamForest2, spam.df, type = "response"), spam.df$IsSpam, dnn = c("Prediction", "Actual"))
@@ -381,7 +381,7 @@ $$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2788}{2788+0} = 1.000$$
 
 $$\text{Precision} = \frac{TP}{TP+FP} = \frac{1794}{1794+0} = 1.000$$
 
-For forest with 1000 trees:
+For forest with **1000 trees**:
 ```{r}
 # generate confusion matrix
 table(predict(spamForest3, spam.df, type = "response"), spam.df$IsSpam, dnn = c("Prediction", "Actual"))
@@ -395,7 +395,7 @@ $$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2788}{2788+0} = 1.000$$
 
 $$\text{Precision} = \frac{TP}{TP+FP} = \frac{1793}{1793+0} = 1.000$$
 
-####c) Plot importance different attributes:
+#### c) Plot importance different attributes:
 
 ```{r, fig.align = 'center', fig.height = 6.5}
 # using forest with 1000 trees
@@ -407,7 +407,7 @@ A higher mean decrease in gini index means the variable has a higher importance,
 
 The top 5 attributes are: "A52", "A53", "A7", "A16" and "A55", in descending order of importance.
 
-####d) Scatterplot matrix of the top five attributes and comments:
+#### d) Scatterplot matrix of the top five attributes and comments:
 
 Let's make a scatterplot matrix using the top 5 attributes for distinguishing whether or not an email is spam or not:
 ```{r, fig.align = "right", fig.height = 8.5, fig.width = 12}
@@ -420,9 +420,9 @@ legend(0.91, 0.76, legend = c("Is spam", "Is not spam"), col = c("firebrick1", "
 
 We can see most blue (not spam) datapoints are clustered on the left or bottom edge or both on each plot. This means that for every attribute shown in the pairs plot, there is a (seemingly) strong trend that if it's attributes (A52, A53, A7, A16 and A55) are near zero, it is likely to not be spam. We can see a much higher concentration of red datapoints as we go away from the bottom left corner in *any direction*, meaning that if any attribute increases, the email is more likely to be spam. As any attribute takes higher and higher positive values, the emails associated with those attributes are much more likely to be spam. This statement is less evident in the "A52" attribute, where even as A52 increases, emails are unlikely to be spam if the other attributes are near zero. Keep in mind that all the claims I made for the dataset here are only applicable to the five attributes mentioned before, and further testing will need to be done if we want to make more general claims about the entire dataset. However it still is ok for prediction purposes since these five attributes are the most important for distinguishing if an email is spam or not. This result is interesting because it may allow us to cut the time spent analysing the data for all attributes and make confident decisions using only a few attributes.
 
-##Question 4
+## Question 4
 
-####a) Formulate a binary integer program in Excel to determine what attributes to collect and use:
+#### a) Formulate a binary integer program in Excel to determine what attributes to collect and use:
 
 We want the most optimal selection of attributes to collect and use in the spam filtering proces, maximising mean decrease in gini index while also considering the time taken (we don't want to exceed 50ms for a single email)
 
@@ -437,9 +437,9 @@ And the results:
 knitr::include_graphics('C:/Users/User/Documents/School/ENGSCI 255/Labs/Lab 2/binaryLP2.PNG')
 ```
 
-From the results of solving the linear program, we want to scan the attributes: A3, A7, A11, A15, A16, A17, A21, A25, A28, A37, A44, A50, A55. Interestingly, we ditch some of the very high importance variables like A52 and A53 in favour of lower importance ones, as the scan time for those variable is too high to allow for it. 
+From the results of solving the linear program, we only want to scan these attributes: A3, A7, A11, A15, A16, A17, A21, A25, A28, A37, A44, A50, A55. Interestingly, we ditch some of the very high importance variables like A52 and A53 in favour of lower importance ones, as the scan time for those variables is too high to justify it being used.
 
-####b) Generate random forest using optimal attributes:
+#### b) Generate random forest using optimal attributes:
 
 ```{r}
 # generate random forest using only the attributes that satisfy the 50ms requirement from above
@@ -447,7 +447,7 @@ From the results of solving the linear program, we want to scan the attributes: 
 spamForestOptimised = randomForest(IsSpam~., data = spam.df[,c(3,7,11,15,16,17,21,25,28,37,44,50,55,58)], ntree = 1000)
 ```
 
-####c) Compute the confusion matrix and related calculations:
+#### c) Compute the confusion matrix and related calculations:
 
 ```{r}
 # generate confusion matrix for new random forest
@@ -462,16 +462,27 @@ $$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2750}{2750+38} = 0.9864$$
 
 $$\text{Precision} = \frac{TP}{TP+FP} = \frac{1692}{1692+38} = 0.9780$$
 
-####d) Compare the results to that from Question 3:
+#### d) Compare the results to that from Question 3:
 
-Sum the scan times in the other csv, compare how much faster, state what accuracy and stuff we lose, is it worth it, other stuff?
+```{r}
+scantimes.df = read.csv("scantimes.csv",header=TRUE) # read in the scan time data
 
+# sum the times from A1 to A57
+sum(scantimes.df[2:58])
+```
 
+So the time taken to scan all attributes from an email (A1 through A57), it would take around 465.85ms, while the optimised search only takes about 49.93ms to scan a single email. This is an 89.28% decrease in scan time for one email. So how does the performance of the search compare?
 
+Comparing the performance of the random forest of 1000 trees with all attributes used vs the optimised random forest of 1000 trees:
 
+*Accuracy*: 0.9957 vs 0.9654 (3.04% decrease)
 
+*Sensitivity*: 0.9890 vs 0.9333 (5.63% decrease)
 
+*Specificity*: 1.000 vs 0.9864 (1.36% decrease)
 
+*Precision*: 1.000 vs 0.9780 (2.20% decrease)
 
+The largest decrease in performance is in the sensitivity of the filter dropping by nearly 6%, while the accuracy, specificity and precision only decrease from around 1% to 3%. 
 
-
+This is not a terrible drop in performance of the filter considering that we have decreased the time by more than 89%, which I believe is a valuable tradeoff for such small drop in performance. So I think this optimised filter is good as it is now for general purpose use, while if we wanted a *really* accurate filter for some specialised purpose, we would have to consider more things and spend more time scanning the emails as a result. 
