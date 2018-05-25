@@ -2,7 +2,7 @@
 title: "ENGSCI 255 Lab 2"
 author: "Navindd Raj"
 date: "Due Date: 5pm Monday 28 May 2018"
-output: github_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -13,6 +13,7 @@ library("rpart.plot")
 library("rattle")
 library("randomForest")
 library("knitr")
+
 ```
 
 ## Question 1
@@ -256,10 +257,10 @@ performance2.df = data.frame(outOfSampleSensitivity, outOfSampleSpecificity)
 
 Show this information on a 2D scatterplot of sensitivity vs specificity, again, the in-sample performance was using the training dataset and out-of-sample performance used the original dataset minus the training set. Note the axes don't start from 0: 
 ```{r, fig.align = 'center',fig.height=5}
-plot(inSampleSpecificity ~ inSampleSensitivity, data = performance1.df, col = "orange", pch = 16, cex = 1.2, ylim = c(0.6,1), xlim = c(0.7,1), ann = FALSE)
-points(outOfSampleSpecificity ~ outOfSampleSensitivity, data = performance2.df, col = "blue", pch = 4, cex = 1.4)
+plot(inSampleSensitivity ~ inSampleSpecificity, data = performance1.df, col = "orange", pch = 16, cex = 1.2, ylim = c(0.65,1), xlim = c(0.65,1), ann = FALSE)
+points(outOfSampleSensitivity ~ outOfSampleSpecificity, data = performance2.df, col = "blue", pch = 4, cex = 1.4)
 legend("bottomleft", legend = c("In-sample performance", "Out-of-sample performance"), pch = c(16,4), col = c("orange","blue"))
-title(main = "Specificity vs Sensitivity for a set of classification trees\nwith varying loss matrices", xlab = "Sensitivity", ylab = "Specificity")
+title(main = "Sensitivity vs Specificity for a set of classification trees\nwith varying loss matrices", xlab = "Specificity", ylab = "Sensitivity")
 ```
 
 #### b) Tree Depth:
@@ -395,12 +396,11 @@ $$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2788}{2788+0} = 1.000$$
 
 $$\text{Precision} = \frac{TP}{TP+FP} = \frac{1793}{1793+0} = 1.000$$
 
-#### c) Plot importance different attributes:
+#### c) Plot importance of different attributes:
 
 ```{r, fig.align = 'center', fig.height = 6.5}
 # using forest with 1000 trees
 varImpPlot(spamForest3, main = "Importance of each variable for classifying spam emails")
-
 ```
 
 A higher mean decrease in gini index means the variable has a higher importance, so variables with points further to the right of the plot are of higher importance for distinguishing spam emails. 
@@ -428,23 +428,23 @@ We want the most optimal selection of attributes to collect and use in the spam 
 
 After getting all the importance data from the "importance(spamForest3)" command, I input them into an Excel linear program. I divided importance score for each attribute by the time taken to scan that particular attribute to give the coefficients for the maximise objective function, and set contraints that total time could not exceed 50ms and the decision variables are all binary. A snippet containing all the important formula used is shown below:
 ```{r, fig.align = 'center', echo = FALSE}
-knitr::include_graphics('Lab2_files/binaryLP.PNG')
-knitr::include_graphics('Lab2_files/solverParameters.PNG')
+knitr::include_graphics('binaryLP.PNG')
+knitr::include_graphics('solverParameters.PNG')
 ```
 
 And the results:
 ```{r, fig.align = 'center', echo = FALSE}
-knitr::include_graphics('Lab2_files/binaryLP2.PNG')
+knitr::include_graphics('binaryLP2.PNG')
 ```
 
-From the results of solving the linear program, we only want to scan these attributes: A3, A7, A11, A15, A16, A17, A21, A25, A28, A37, A44, A50, A55. Interestingly, we ditch some of the very high importance variables like A52 and A53 in favour of lower importance ones, as the scan time for those variables is too high to justify it being used.
+From the results of solving the linear program, we only want to scan these attributes: A7, A16, A17, A21, A25, A28, A52, A55. Interestingly, we ditch some of the very high importance variables like A53 in favour of lower importance ones, as the scan time for those variables is too high to justify it being used.
 
 #### b) Generate random forest using optimal attributes:
 
 ```{r}
 # generate random forest using only the attributes that satisfy the 50ms requirement from above
 # column 58 for "IsSpam" data
-spamForestOptimised = randomForest(IsSpam~., data = spam.df[,c(3,7,11,15,16,17,21,25,28,37,44,50,55,58)], ntree = 1000)
+spamForestOptimised = randomForest(IsSpam~., data = spam.df[,c(7,16,17,21,25,28,52,55,58)], ntree = 1000)
 ```
 
 #### c) Compute the confusion matrix and related calculations:
@@ -454,13 +454,13 @@ spamForestOptimised = randomForest(IsSpam~., data = spam.df[,c(3,7,11,15,16,17,2
 table(predict(spamForestOptimised, spam.df, type = "response"), spam.df$IsSpam, dnn = c("Prediction", "Actual"))
 ```
 
-$$\text{Accuracy} =\frac{TN+TP}{\text{total # of datapoints}} = \frac{2750+1692}{2750+121+38+1692} = 0.9654$$
+$$\text{Accuracy} =\frac{TN+TP}{\text{total # of datapoints}} = \frac{2740+1674}{2740+139+48+1674} = 0.9594$$
 
-$$\text{Sensitivity} = \frac{TP}{TP+FN} = \frac{1692}{1692+121} = 0.9333$$
+$$\text{Sensitivity} = \frac{TP}{TP+FN} = \frac{1674}{1674+139} = 0.9233$$
 
-$$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2750}{2750+38} = 0.9864$$
+$$\text{Specificity} = \frac{TN}{TN+FP} = \frac{2740}{2740+48} = 0.9828$$
 
-$$\text{Precision} = \frac{TP}{TP+FP} = \frac{1692}{1692+38} = 0.9780$$
+$$\text{Precision} = \frac{TP}{TP+FP} = \frac{1674}{1674+48} = 0.9721$$
 
 #### d) Compare the results to that from Question 3:
 
@@ -471,18 +471,18 @@ scantimes.df = read.csv("scantimes.csv",header=TRUE) # read in the scan time dat
 sum(scantimes.df[2:58])
 ```
 
-So the time taken to scan all attributes from an email (A1 through A57), it would take around 465.85ms, while the optimised search only takes about 49.93ms to scan a single email. This is an 89.28% decrease in scan time for one email. So how does the performance of the search compare?
+So the time taken to scan all attributes from an email (A1 through A57), it would take around 465.85ms, while the optimised search only takes about 49.96ms to scan a single email. This is an 89.28% decrease in scan time for one email. So how does the performance of the search compare?
 
 Comparing the performance of the random forest of 1000 trees with all attributes used vs the optimised random forest of 1000 trees:
 
-*Accuracy*: 0.9957 vs 0.9654 (3.04% decrease)
+*Accuracy*: 0.9957 vs 0.9594 (3.65% decrease)
 
-*Sensitivity*: 0.9890 vs 0.9333 (5.63% decrease)
+*Sensitivity*: 0.9890 vs 0.9233 (6.64% decrease)
 
-*Specificity*: 1.000 vs 0.9864 (1.36% decrease)
+*Specificity*: 1.000 vs 0.9828 (1.72% decrease)
 
-*Precision*: 1.000 vs 0.9780 (2.20% decrease)
+*Precision*: 1.000 vs 0.9721 (2.79% decrease)
 
-The largest decrease in performance is in the sensitivity of the filter dropping by nearly 6%, while the accuracy, specificity and precision only decrease from around 1% to 3%. 
+The largest decrease in performance is in the sensitivity of the filter dropping by nearly 7%, while the accuracy, specificity and precision only decrease from around 1% to 4%. 
 
 This is not a terrible drop in performance of the filter considering that we have decreased the time by more than 89%, which I believe is a valuable tradeoff for such small drop in performance. So I think this optimised filter is good as it is now for general purpose use, while if we wanted a *really* accurate filter for some specialised purpose, we would have to consider more things and spend more time scanning the emails as a result. 

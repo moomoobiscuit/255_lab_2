@@ -6,5 +6,4 @@ problem of maximising sensitivity and sepificity of a prediction, varying tree d
 forests of classification trees to further maximise performance, and creating a binary linear program in Excel to attain optimal
 performance in a realistic scanning time. 
 
-The submission can be viewed on the .md file on GitHub, or by downloading the .Rmd file and knitting to html. The .md file has bad
-formatting for some plots and latex expressions used. 
+The submission can be viewed on the "ENGSCI 255 Lab 2" pdf file on GitHub.
